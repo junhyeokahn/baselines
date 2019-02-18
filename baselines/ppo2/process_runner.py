@@ -112,8 +112,6 @@ class ProcessRunner(object):
                 layer.act_fn = NeuralNetworkParam.NONE
             else:
                 layer.act_fn = self.act_fn
-        pb_policy_param.stochastic = True
-        # pb_policy_param.stochastic = False
         for action_idx in range(policy_param[-1].shape[0]):
             pb_policy_param.logstd.append((policy_param[-1])[action_idx])
         pb_policy_param_serialized = pb_policy_param.SerializeToString()
@@ -141,7 +139,6 @@ class ProcessRunner(object):
                 layer.act_fn = NeuralNetworkParam.NONE
             else:
                 layer.act_fn = self.act_fn
-        pb_policy_param.stochastic = False
         pb_valfn_param_serialized = pb_valfn_param.SerializeToString()
         self.policy_valfn_socket_list[str(env_idx)].send(pb_valfn_param_serialized)
         self.policy_valfn_socket_list[str(env_idx)].recv()
@@ -171,6 +168,7 @@ class ProcessRunner(object):
         mb_obs = np.zeros(shape=(self.n_steps, self.n_env, self.ob_space.shape[0]), dtype=np.float32)
         mb_rewards = np.zeros(shape=(self.n_steps, self.n_env), dtype=np.float32)
         mb_actions = np.zeros(shape=(self.n_steps, self.n_env, self.ac_space.shape[0]), dtype=np.float32)
+        actions_mean = np.zeros(shape=(self.n_steps, self.n_env, self.ac_space.shape[0]), dtype=np.float32)
         mb_values = np.zeros(shape=(self.n_steps, self.n_env), dtype=np.float32)
         mb_dones = np.zeros(shape=(self.n_steps, self.n_env), dtype=bool)
         mb_neglogpacs = np.zeros(shape=(self.n_steps, self.n_env), dtype=np.float32)
@@ -191,12 +189,12 @@ class ProcessRunner(object):
                 pb_data_set = DataSet()
                 while(True):
                     zmq_msg = self.data_socket_list[str(env_idx)].recv()
-                    pb_data_set.ParseFromString(zmq_msg)
-                    if pb_data_set.ListFields() == []:
-                        if self.verbose >= 1:
-                            print("Null data is received and ignored")
-                    else:
-                        break
+                    if not (zmq_msg == b'hello'):
+                        pb_data_set.ParseFromString(zmq_msg)
+                        if pb_data_set.ListFields() == []:
+                            assert(False)
+                        else:
+                            break
                 counts[step_idx, env_idx] = pb_data_set.count
                 if b_first[env_idx]:
                     assert(pb_data_set.count == 0)
@@ -204,6 +202,7 @@ class ProcessRunner(object):
                 mb_obs[step_idx, env_idx] = pb_data_set.observation
                 mb_rewards[step_idx, env_idx] = pb_data_set.reward
                 mb_actions[step_idx, env_idx] = pb_data_set.action
+                actions_mean[step_idx, env_idx] = pb_data_set.action_mean
                 mb_values[step_idx, env_idx] = pb_data_set.value
                 mb_dones[step_idx, env_idx] = pb_data_set.done
                 mb_neglogpacs[step_idx, env_idx] = pb_data_set.neglogp

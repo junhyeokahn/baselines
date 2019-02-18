@@ -54,6 +54,7 @@ def learn(env, nenvs, network, password, total_timesteps=1e6, seed=None,
 
     if load_path is not None:
         model.load(load_path)
+
     # Instantiate the runner object
     runner = ProcessRunner(env=env, model=model, n_env=nenvs, n_steps=nsteps,
             gamma=gamma, lam=lam, password = password, verbose=0,
@@ -135,6 +136,8 @@ def learn(env, nenvs, network, password, total_timesteps=1e6, seed=None,
             logger.logkv("explained_variance", float(ev))
             logger.logkv('eprewmean', safemean([epinfo['r'] for epinfo in epinfobuf]))
             logger.logkv('eplenmean', safemean([epinfo['l'] for epinfo in epinfobuf]))
+            logger.logkv('serial_num_dones', int(masks.sum()/nenvs))
+            logger.logkv('total_num_dones', masks.sum())
             logger.logkv('time_elapsed', tnow - tfirststart)
             for (lossval, lossname) in zip(lossvals, model.loss_names):
                 logger.logkv(lossname, lossval)
@@ -148,14 +151,18 @@ def learn(env, nenvs, network, password, total_timesteps=1e6, seed=None,
             save_path = osp.join(checkdir, '%.5i'%update)
             print('Saving to', save_path)
             model.save(save_path)
-    save_model_param_yaml(save_dir, policy_param, valfn_param, **network_kwargs)
+    save_to_yaml(save_dir, **network_kwargs)
     return model
 
 # Avoid division error when calculate the mean (in our case if epinfo is empty returns np.nan, not return an error)
 def safemean(xs):
     return np.nan if len(xs) == 0 else np.mean(xs)
 
-def save_model_param_yaml(save_path, _policy_param, _valfn_param, **network_kwargs):
+def save_to_yaml(save_path, **network_kwargs):
+
+    _policy_param = get_session().run(tf.trainable_variables('ppo2_model/pi'))
+    _valfn_param = get_session().run(tf.trainable_variables('ppo2_model/vf'))
+
     p_num_layer = (int) ((len(_policy_param)-1) / 2)
     v_num_layer = (int) (len(_valfn_param) / 2)
     assert(p_num_layer == v_num_layer)
