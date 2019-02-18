@@ -236,6 +236,24 @@ class ProcessRunner(object):
             mb_advs[t] = lastgaelam = delta + self.gamma * self.lam * nextnonterminal * lastgaelam
         mb_returns = mb_advs + mb_values
 
+        ## TEST
+        # import matplotlib
+        # matplotlib.use('tkagg')
+        # import matplotlib.pyplot as plt
+        # env_idx = 0
+        # ob_list = mb_obs[:,env_idx,:]
+        # ac_list = mb_actions[:, env_idx]
+        # plt.close('all')
+        # f, axarr = plt.subplots(4, sharex=True)
+        # for i in range(4):
+            # axarr[i].plot(ob_list[:, i])
+        # f2, ax = plt.subplots()
+        # ax.plot(ac_list[:,0])
+        # plt.show()
+        # __import__('ipdb').set_trace()
+        ##TEST
+
+
         return (*map(sf01, (mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs)),
             mb_states, epinfos)
 
