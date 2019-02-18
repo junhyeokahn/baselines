@@ -40,7 +40,8 @@ setup(name='baselines',
           'cloudpickle',
           'click',
           'opencv-python',
-          'pyzmq'
+          'pyzmq',
+          'mpi4py'
       ],
       extras_require=extras,
       description='OpenAI baselines: high quality implementations of reinforcement learning algorithms',
