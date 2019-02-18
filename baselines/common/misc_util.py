@@ -5,6 +5,7 @@ import pickle
 import random
 import tempfile
 import zipfile
+import glob
 
 
 def zipsame(*seqs):
@@ -262,3 +263,18 @@ def pickle_load(path, compression=False):
     else:
         with open(path, "rb") as f:
             return pickle.load(f)
+
+def get_latest_run_id(save_path, dir_name):
+    """
+    returns the latest run number for the given log name and log path,
+    by finding the greatest number in the directories.
+
+    :return: (int) latest run number
+    """
+    max_run_id = 0
+    for path in glob.glob(save_path + "/{}_[0-9]*".format(dir_name)):
+        file_name = path.split("/")[-1]
+        ext = file_name.split("_")[-1]
+        if dir_name == "_".join(file_name.split("_")[:-1]) and ext.isdigit() and int(ext) > max_run_id:
+            max_run_id = int(ext)
+    return max_run_id
