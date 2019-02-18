@@ -39,7 +39,7 @@ setup(name='baselines',
           'progressbar2',
           'cloudpickle',
           'click',
-          'opencv-python'
+          'opencv-python',
           'pyzmq'
       ],
       extras_require=extras,
