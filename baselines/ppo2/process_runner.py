@@ -175,6 +175,7 @@ class ProcessRunner(object):
         mb_states = None
         last_values = np.zeros(shape=(self.n_env))
         epinfos=[]
+        dataset_total_rew=0
         cur_ep_ret = np.zeros(shape=(self.n_env), dtype=np.float32)
         b_first = np.ones(shape=(self.n_env), dtype=bool)
 
@@ -207,6 +208,7 @@ class ProcessRunner(object):
                 mb_dones[step_idx, env_idx] = pb_data_set.done
                 mb_neglogpacs[step_idx, env_idx] = pb_data_set.neglogp
                 cur_ep_ret[env_idx] += pb_data_set.reward
+                dataset_total_rew += pb_data_set.reward
                 if pb_data_set.done:
                     epinfos.append({'r':cur_ep_ret[env_idx],
                                     'l':pb_data_set.count})
@@ -236,26 +238,8 @@ class ProcessRunner(object):
             mb_advs[t] = lastgaelam = delta + self.gamma * self.lam * nextnonterminal * lastgaelam
         mb_returns = mb_advs + mb_values
 
-        ## TEST
-        # import matplotlib
-        # matplotlib.use('tkagg')
-        # import matplotlib.pyplot as plt
-        # env_idx = 0
-        # ob_list = mb_obs[:,env_idx,:]
-        # ac_list = mb_actions[:, env_idx]
-        # plt.close('all')
-        # f, axarr = plt.subplots(4, sharex=True)
-        # for i in range(4):
-            # axarr[i].plot(ob_list[:, i])
-        # f2, ax = plt.subplots()
-        # ax.plot(ac_list[:,0])
-        # plt.show()
-        # __import__('ipdb').set_trace()
-        ##TEST
-
-
-        return (*map(sf01, (mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs)),
-            mb_states, epinfos)
+        return (*map(sf01, (mb_obs, mb_rewards, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs, actions_mean)),
+            mb_states, epinfos, dataset_total_rew)
 
 def sf01(arr):
     """

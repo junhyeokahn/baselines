@@ -50,6 +50,9 @@ class PolicyWithValue(object):
 
         # Take an action
         self.action = self.pd.sample()
+        ## !! TEST !!
+        self.deterministic_action = self.pd.mode()
+        ## !! TEST !!
 
         # Calculate the neg log of our probability
         self.neglogp = self.pd.neglogp(self.action)
@@ -73,6 +76,15 @@ class PolicyWithValue(object):
                     feed_dict[inpt] = adjust_shape(inpt, data)
 
         return sess.run(variables, feed_dict)
+
+    ## !! TEST !!
+    def step_debug(self, observation, given_action, **extra_feed):
+        a_, v_, nglp_, mean_, std_, logstd_ = \
+            self._evaluate([self.deterministic_action, self.vf,
+                self.pd.neglogp(given_action), self.pd.mean, self.pd.std, self.pd.logstd], observation, **extra_feed)
+        return a_, v_, nglp_, mean_, std_, logstd_
+    ## !! TEST !!
+
 
     def step(self, observation, **extra_feed):
         """

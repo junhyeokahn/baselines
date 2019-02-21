@@ -41,7 +41,8 @@ setup(name='baselines',
           'click',
           'opencv-python',
           'pyzmq',
-          'mpi4py'
+          'mpi4py',
+          'pandas'
       ],
       extras_require=extras,
       description='OpenAI baselines: high quality implementations of reinforcement learning algorithms',

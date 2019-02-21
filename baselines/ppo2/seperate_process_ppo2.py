@@ -84,7 +84,20 @@ def learn(env, nenvs, network, password, total_timesteps=1e6, seed=None,
         # Get minibatch
         policy_param = get_session().run(tf.trainable_variables('ppo2_model/pi'))
         valfn_param = get_session().run(tf.trainable_variables('ppo2_model/vf'))
-        obs, returns, masks, actions, values, neglogpacs, states, epinfos = runner.run(policy_param, valfn_param) #pylint: disable=E0632
+        obs, rewards, returns, masks, actions, values, neglogpacs, action_mean, states, epinfos, dataset_total_rew = runner.run(policy_param, valfn_param) #pylint: disable=E0632
+        ## !! TEST !!
+        # with tf.variable_scope('ppo2_model', reuse=tf.AUTO_REUSE):
+            # da_, v_, nglp_, mean_, std_, logstd_ = policy().step_debug(obs, actions)
+            # if not ((np.isclose(da_, action_mean, atol=5e-7)).all()):
+                # __import__('ipdb').set_trace()
+                # print("action no match")
+            # if not ((np.isclose(v_, values, atol=5e-7)).all()):
+                # __import__('ipdb').set_trace()
+                # print("value no match")
+            # if not ((np.isclose(nglp_, neglogpacs, atol=5e-7)).all()):
+                # __import__('ipdb').set_trace()
+                # print("neglogp no match")
+        ## !! TEST !!
 
         epinfobuf.extend(epinfos)
 
@@ -135,6 +148,7 @@ def learn(env, nenvs, network, password, total_timesteps=1e6, seed=None,
             logger.logkv("fps", fps)
             logger.logkv("explained_variance", float(ev))
             logger.logkv('eprewmean', safemean([epinfo['r'] for epinfo in epinfobuf]))
+            logger.logkv('dataset_rew', dataset_total_rew/nenvs)
             logger.logkv('eplenmean', safemean([epinfo['l'] for epinfo in epinfobuf]))
             logger.logkv('serial_num_dones', int(masks.sum()/nenvs))
             logger.logkv('total_num_dones', masks.sum())
@@ -151,14 +165,28 @@ def learn(env, nenvs, network, password, total_timesteps=1e6, seed=None,
             save_path = osp.join(checkdir, '%.5i'%update)
             print('Saving to', save_path)
             model.save(save_path)
-    save_to_yaml(save_dir, **network_kwargs)
+            save_dataset(save_path, nsteps, obs, rewards, returns, masks, actions, values)
+
+    ## !! TEST !! ##
+    # __import__('ipdb').set_trace()
+    # with tf.variable_scope('ppo2_model', reuse=tf.AUTO_REUSE):
+        # while(True):
+            # da_, v_, nglp_, mean_, std_, logstd_ = policy().step_debug(obs, actions)
+    ## !! TEST !! ##
+    save_model_to_yaml(save_dir, **network_kwargs)
     return model
 
 # Avoid division error when calculate the mean (in our case if epinfo is empty returns np.nan, not return an error)
 def safemean(xs):
     return np.nan if len(xs) == 0 else np.mean(xs)
 
-def save_to_yaml(save_path, **network_kwargs):
+
+def save_dataset(save_path, nsteps, obs, rew, ret, mask, action, value):
+    n_steps = np.array([nsteps])
+    np.savez(save_path+'.npz', n_steps=n_steps, obs=obs, rew=rew, ret=ret, mask=mask, action=action,
+            value=value)
+
+def save_model_to_yaml(save_path, **network_kwargs):
 
     _policy_param = get_session().run(tf.trainable_variables('ppo2_model/pi'))
     _valfn_param = get_session().run(tf.trainable_variables('ppo2_model/vf'))
@@ -204,13 +232,3 @@ def save_to_yaml(save_path, **network_kwargs):
         yaml.dump(data, f)
 
     print('Saving Yaml to', save_path)
-
-    #### TEST
-    # obs = np.array([[0]])
-    # while(True):
-        # __import__('ipdb').set_trace()
-        # first = np.tanh( np.matmul(obs, policy_param[0]) + policy_param[1].reshape(1, policy_param[1].shape[0] ) )
-        # second = np.tanh( np.matmul(first, policy_param[2]) + policy_param[3].reshape(1, policy_param[3].shape[0]) )
-        # third = np.tanh( np.matmul(second, policy_param[4]) + policy_param[5].reshape(1, policy_param[5].shape[0]) )
-        # self.step(obs, deterministic=True)
-    #### TEST
