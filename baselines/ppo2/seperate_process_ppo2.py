@@ -89,14 +89,16 @@ def learn(env, nenvs, network, password, total_timesteps=1e6, seed=None,
         # with tf.variable_scope('ppo2_model', reuse=tf.AUTO_REUSE):
             # da_, v_, nglp_, mean_, std_, logstd_ = policy().step_debug(obs, actions)
             # if not ((np.isclose(da_, action_mean, atol=5e-7)).all()):
-                # __import__('ipdb').set_trace()
+                # print(da_ - action_mean)
                 # print("action no match")
             # if not ((np.isclose(v_, values, atol=5e-7)).all()):
-                # __import__('ipdb').set_trace()
+                # print(v_ - values)
                 # print("value no match")
             # if not ((np.isclose(nglp_, neglogpacs, atol=5e-7)).all()):
-                # __import__('ipdb').set_trace()
+                # print(nglp_-neglogpacs)
                 # print("neglogp no match")
+            # __import__('ipdb').set_trace()
+            # print("Debugging!")
         ## !! TEST !!
 
         epinfobuf.extend(epinfos)
@@ -168,8 +170,8 @@ def learn(env, nenvs, network, password, total_timesteps=1e6, seed=None,
             save_dataset(save_path, nsteps, obs, rewards, returns, masks, actions, values)
 
     ## !! TEST !! ##
-    # __import__('ipdb').set_trace()
     # with tf.variable_scope('ppo2_model', reuse=tf.AUTO_REUSE):
+        # __import__('ipdb').set_trace()
         # while(True):
             # da_, v_, nglp_, mean_, std_, logstd_ = policy().step_debug(obs, actions)
     ## !! TEST !! ##

@@ -76,13 +76,13 @@ class ProcessRunner(object):
         cfg_path = os.getcwd() + '/Config/' + self.env_name + '/TEST/RL_TEST.yaml'
         with open(cfg_path) as f:
             config = yaml.safe_load(f)
-            ip_sub_pub_first = config['control_configuration']['learning_ctrl']['protocol']['ip_sub_pub_prefix']
-            ip_req_rep_first = config['control_configuration']['learning_ctrl']['protocol']['ip_req_rep_prefix']
-            self.username = config['control_configuration']['learning_ctrl']['protocol']['username']
-            self.ip_control_pc = config['control_configuration']['learning_ctrl']['protocol']['ip_control_pc']
-            self.execute_cmd = config['control_configuration']['learning_ctrl']['protocol']['execute_cmd']
+            ip_sub_pub_first = config['test_configuration']['protocol']['ip_sub_pub_prefix']
+            ip_req_rep_first = config['test_configuration']['protocol']['ip_req_rep_prefix']
+            self.username = config['test_configuration']['protocol']['username']
+            self.ip_control_pc = config['test_configuration']['protocol']['ip_control_pc']
+            self.execute_cmd = config['test_configuration']['protocol']['execute_cmd']
             self.execute_cmd += ' ' + str(self.mpi_rank) + ' '
-            self.exit_cmd = config['control_configuration']['learning_ctrl']['protocol']['exit_cmd']
+            self.exit_cmd = config['test_configuration']['protocol']['exit_cmd']
             self.exit_cmd += ' ' + str(self.mpi_rank) + ' '
             self.ip_sub_pub_list = { str(env_id): ip_sub_pub_first + str(self.mpi_rank) + str(env_id) for env_id in range(self.n_env)}
             self.ip_req_rep_list = { str(env_id): ip_req_rep_first + str(self.mpi_rank) + str(env_id) for env_id in range(self.n_env)}
@@ -187,31 +187,31 @@ class ProcessRunner(object):
         # for step_idx in range(self.n_steps):
             # print(step_idx)
             for env_idx in range(self.n_env):
-                pb_data_set = DataSet()
+                pb_data = Data()
                 while(True):
                     zmq_msg = self.data_socket_list[str(env_idx)].recv()
                     if not (zmq_msg == b'hello'):
-                        pb_data_set.ParseFromString(zmq_msg)
-                        if pb_data_set.ListFields() == []:
+                        pb_data.ParseFromString(zmq_msg)
+                        if pb_data.ListFields() == []:
                             assert(False)
                         else:
                             break
-                counts[step_idx, env_idx] = pb_data_set.count
+                counts[step_idx, env_idx] = pb_data.count
                 if b_first[env_idx]:
-                    assert(pb_data_set.count == 0)
+                    assert(pb_data.count == 0)
                     b_first[env_idx] = False
-                mb_obs[step_idx, env_idx] = pb_data_set.observation
-                mb_rewards[step_idx, env_idx] = pb_data_set.reward
-                mb_actions[step_idx, env_idx] = pb_data_set.action
-                actions_mean[step_idx, env_idx] = pb_data_set.action_mean
-                mb_values[step_idx, env_idx] = pb_data_set.value
-                mb_dones[step_idx, env_idx] = pb_data_set.done
-                mb_neglogpacs[step_idx, env_idx] = pb_data_set.neglogp
-                cur_ep_ret[env_idx] += pb_data_set.reward
-                dataset_total_rew += pb_data_set.reward
-                if pb_data_set.done:
+                mb_obs[step_idx, env_idx] = pb_data.observation
+                mb_rewards[step_idx, env_idx] = pb_data.reward
+                mb_actions[step_idx, env_idx] = pb_data.action
+                actions_mean[step_idx, env_idx] = pb_data.action_mean
+                mb_values[step_idx, env_idx] = pb_data.value
+                mb_dones[step_idx, env_idx] = pb_data.done
+                mb_neglogpacs[step_idx, env_idx] = pb_data.neglogp
+                cur_ep_ret[env_idx] += pb_data.reward
+                dataset_total_rew += pb_data.reward
+                if pb_data.done:
                     epinfos.append({'r':cur_ep_ret[env_idx],
-                                    'l':pb_data_set.count})
+                                    'l':pb_data.count})
                     cur_ep_ret[env_idx] = 0
                     self.process_manager_list[str(env_idx)].quit_process()
                     self.create_zmq_sockets(env_idx)
