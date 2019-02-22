@@ -165,9 +165,10 @@ def learn(env, nenvs, network, password, total_timesteps=1e6, seed=None,
             checkdir = osp.join(logger.get_dir(), 'checkpoints')
             os.makedirs(checkdir, exist_ok=True)
             save_path = osp.join(checkdir, '%.5i'%update)
-            print('Saving to', save_path)
+            print('Saving TF model to', save_path)
             model.save(save_path)
             save_dataset(save_path, nsteps, obs, rewards, returns, masks, actions, values)
+            save_model_to_yaml(save_path, **network_kwargs)
 
     ## !! TEST !! ##
     # with tf.variable_scope('ppo2_model', reuse=tf.AUTO_REUSE):
@@ -175,7 +176,7 @@ def learn(env, nenvs, network, password, total_timesteps=1e6, seed=None,
         # while(True):
             # da_, v_, nglp_, mean_, std_, logstd_ = policy().step_debug(obs, actions)
     ## !! TEST !! ##
-    save_model_to_yaml(save_dir, **network_kwargs)
+
     return model
 
 # Avoid division error when calculate the mean (in our case if epinfo is empty returns np.nan, not return an error)
@@ -229,7 +230,7 @@ def save_model_to_yaml(save_path, **network_kwargs):
             valfn_params['act_fn'+str(layer_idx)] = act_fn_
 
     data = {"pol_params": pol_params, "valfn_params": valfn_params}
-    with open(save_path + '/model.yaml', 'w') as f:
+    with open(save_path + '.yaml', 'w') as f:
         yaml = YAML()
         yaml.dump(data, f)
 
