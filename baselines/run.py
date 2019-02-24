@@ -52,6 +52,8 @@ _game_envs['retro'] = {
 
 
 def train(args, extra_args):
+    # args = Namespace(alg='ppo2', env='MyBulletCartPoleEnv-v0', extra_import=None, gamestate=None, network='mlp', num_env=2, num_timesteps=1000000.0, play=False, reward_scale=1.0, save_path=None, save_video_interval=0, save_video_length=200, seed=None)
+    # extra_args = {'num_layers': 2, 'num_hidden': 64, 'value_network': 'copy'}
     env_type, env_id = get_env_type(args.env)
     print('env_type: {}'.format(env_type))
 

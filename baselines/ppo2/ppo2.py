@@ -6,12 +6,48 @@ from baselines import logger
 from collections import deque
 from baselines.common import explained_variance, set_global_seeds
 from baselines.common.policies import build_policy
+
+from baselines.common.tf_util import get_session
+from ruamel.yaml import YAML
+import tensorflow as tf
+
 try:
     from mpi4py import MPI
 except ImportError:
     MPI = None
 from baselines.ppo2.runner import Runner
 
+def load_model(*, network, env, total_timesteps, seed=None, nsteps=2048,
+                  ent_coef=0.0, vf_coef=0.5,  max_grad_norm=0.5, load_path=None,
+                  model_fn=None, nminibatches=4, **network_kwargs):
+
+    set_global_seeds(seed)
+    total_timesteps = int(total_timesteps)
+    policy = build_policy(env, network, **network_kwargs)
+
+    # Get the nb of env
+    nenvs = env.num_envs
+
+    # Calculate the batch_size
+    nbatch = nenvs * nsteps
+    nbatch_train = nbatch // nminibatches
+
+    # Get state_space and action_space
+    ob_space = env.observation_space
+    ac_space = env.action_space
+
+    # Instantiate the model object (that creates act_model and train_model)
+    if model_fn is None:
+        from baselines.ppo2.model import Model
+        model_fn = Model
+
+    model = model_fn(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=nenvs, nbatch_train=nbatch_train,
+                    nsteps=nsteps, ent_coef=ent_coef, vf_coef=vf_coef,
+                    max_grad_norm=max_grad_norm)
+
+    model.load(load_path)
+
+    return model
 
 def constfn(val):
     def f(_):
@@ -85,7 +121,7 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
     else: assert callable(cliprange)
     total_timesteps = int(total_timesteps)
 
-    policy = build_policy(env, network, **network_kwargs)
+    policy = build_policy(env, network, value_network='copy', **network_kwargs)
 
     # Get the nb of env
     nenvs = env.num_envs
@@ -123,6 +159,9 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
 
     nupdates = total_timesteps//nbatch
     for update in range(1, nupdates+1):
+        logger.log("# " + "="*78)
+        logger.log("# Iteration %i / %i" % (update, nupdates))
+        logger.log("# " + "="*78)
         assert nbatch % nminibatches == 0
         # Start timer
         tstart = time.time()
@@ -196,16 +235,71 @@ def learn(*, network, env, total_timesteps, eval_env = None, seed=None, nsteps=2
                 logger.logkv(lossname, lossval)
             if MPI is None or MPI.COMM_WORLD.Get_rank() == 0:
                 logger.dumpkvs()
-        if save_interval and (update % save_interval == 0 or update == 1) and logger.get_dir() and (MPI is None or MPI.COMM_WORLD.Get_rank() == 0):
+        if (update == nupdates and (MPI is None or MPI.COMM_WORLD.Get_rank() == 0)) \
+                or \
+                (save_interval and (update % save_interval == 0 or update == 1) and logger.get_dir() and (MPI is None or MPI.COMM_WORLD.Get_rank() == 0)):
             checkdir = osp.join(logger.get_dir(), 'checkpoints')
             os.makedirs(checkdir, exist_ok=True)
             savepath = osp.join(checkdir, '%.5i'%update)
-            print('Saving to', savepath)
+            print('Saving TF model to', savepath)
             model.save(savepath)
+            save_dataset(savepath, nsteps, obs, returns, masks, actions, values)
+            # save_model_to_yaml(savepath, **network_kwargs)
+
     return model
 # Avoid division error when calculate the mean (in our case if epinfo is empty returns np.nan, not return an error)
 def safemean(xs):
     return np.nan if len(xs) == 0 else np.mean(xs)
 
+def save_dataset(save_path, nsteps, obs, ret, mask, action, value):
+    n_steps = np.array([nsteps])
+    np.savez(save_path+'.npz', n_steps=n_steps, obs=obs, ret=ret, mask=mask, action=action,
+            value=value)
 
+def save_model_to_yaml(save_path, **network_kwargs):
 
+    _policy_param = get_session().run(tf.trainable_variables('ppo2_model/pi'))
+    _valfn_param = get_session().run(tf.trainable_variables('ppo2_model/vf'))
+
+    __import__('ipdb').set_trace()
+    p_num_layer = (int) ((len(_policy_param)-1) / 2)
+    v_num_layer = (int) (len(_valfn_param) / 2)
+    assert(p_num_layer == v_num_layer)
+    assert(p_num_layer == network_kwargs['num_layers'] + 1)
+    act_fn = network_kwargs['activation']
+    if act_fn == None:
+        act_fn_ = 0
+    elif act_fn == tf.tanh:
+        act_fn_ = 1
+    elif act_fn == tf.nn.relu:
+        act_fn_ = 2
+    else:
+        print("Wrong activation function")
+
+    pol_params = {}
+    pol_params['num_layer'] = p_num_layer
+    for layer_idx in range(p_num_layer):
+        pol_params['w'+str(layer_idx)] = _policy_param[2*layer_idx].tolist()
+        pol_params['b'+str(layer_idx)] = (_policy_param[2*layer_idx+1]).reshape(1, (_policy_param[2*layer_idx+1]).shape[0]).tolist()
+        if (layer_idx == (p_num_layer - 1)):
+            pol_params['act_fn'+str(layer_idx)] = 0
+        else:
+            pol_params['act_fn'+str(layer_idx)] = act_fn_
+    pol_params['logstd'] = _policy_param[-1].tolist()
+
+    valfn_params = {}
+    valfn_params['num_layer'] = v_num_layer
+    for layer_idx in range(p_num_layer):
+        valfn_params['w'+str(layer_idx)] = _valfn_param[2*layer_idx].tolist()
+        valfn_params['b'+str(layer_idx)] = _valfn_param[2*layer_idx+1].reshape(1, (_valfn_param[2*layer_idx+1]).shape[0]).tolist()
+        if (layer_idx == (v_num_layer - 1)):
+            valfn_params['act_fn'+str(layer_idx)] = 0
+        else:
+            valfn_params['act_fn'+str(layer_idx)] = act_fn_
+
+    data = {"pol_params": pol_params, "valfn_params": valfn_params}
+    with open(save_path + '.yaml', 'w') as f:
+        yaml = YAML()
+        yaml.dump(data, f)
+
+    print('Saving Yaml to', save_path)

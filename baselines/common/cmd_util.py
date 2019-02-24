@@ -80,7 +80,6 @@ def make_env(env_id, env_type, subrank=0, seed=None, reward_scale=1.0, gamestate
 
     return env
 
-
 def make_mujoco_env(env_id, seed, reward_scale=1.0):
     """
     Create a wrapped, monitored gym.Env for MuJoCo.
