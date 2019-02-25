@@ -2,7 +2,6 @@ import os
 import time
 import numpy as np
 import os.path as osp
-from tqdm import tqdm
 from baselines import logger
 from collections import deque
 from baselines.common import explained_variance, set_global_seeds

@@ -184,8 +184,6 @@ class ProcessRunner(object):
             self.run_experiment(env_idx, policy_param, valfn_param)
 
         for step_idx in tqdm(range(self.n_steps), ncols=80, desc="[Trajectory Roll Out]"):
-        # for step_idx in range(self.n_steps):
-            # print(step_idx)
             for env_idx in range(self.n_env):
                 pb_data = Data()
                 while(True):
