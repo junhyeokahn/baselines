@@ -73,7 +73,7 @@ class ProcessRunner(object):
             print("[[Socket created for %d th Env]]" % env_idx)
 
     def parameter_setting(self):
-        cfg_path = os.getcwd() + '/Config/' + self.env_name + '/TEST/RL_TEST.yaml'
+        cfg_path = os.getcwd() + '/Config/' + self.env_name + '/TEST/RL_WALKING_TEST.yaml'
         with open(cfg_path) as f:
             config = yaml.safe_load(f)
             ip_sub_pub_first = config['test_configuration']['protocol']['ip_sub_pub_prefix']
@@ -112,8 +112,8 @@ class ProcessRunner(object):
                 layer.act_fn = NeuralNetworkParam.NONE
             else:
                 layer.act_fn = self.act_fn
-        for action_idx in range(policy_param[-1].shape[0]):
-            pb_policy_param.logstd.append((policy_param[-1])[action_idx])
+        for action_idx in range(policy_param[-1].shape[-1]):
+            pb_policy_param.logstd.append((policy_param[-1])[0, action_idx])
         pb_policy_param_serialized = pb_policy_param.SerializeToString()
         self.policy_valfn_socket_list[str(env_idx)].send(pb_policy_param_serialized)
         self.policy_valfn_socket_list[str(env_idx)].recv()
@@ -221,6 +221,7 @@ class ProcessRunner(object):
         for env_idx in range(self.n_env):
             self.process_manager_list[str(env_idx)].quit_process()
 
+        # __import__('ipdb').set_trace()
         # discount/bootstrap off value fn
         mb_returns = np.zeros_like(mb_rewards)
         mb_advs = np.zeros_like(mb_rewards)
