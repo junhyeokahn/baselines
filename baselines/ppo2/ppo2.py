@@ -17,38 +17,6 @@ except ImportError:
     MPI = None
 from baselines.ppo2.runner import Runner
 
-def load_model(*, network, env, total_timesteps, seed=None, nsteps=2048,
-                  ent_coef=0.0, vf_coef=0.5,  max_grad_norm=0.5, load_path=None,
-                  model_fn=None, nminibatches=4, **network_kwargs):
-
-    set_global_seeds(seed)
-    total_timesteps = int(total_timesteps)
-    policy = build_policy(env, network, **network_kwargs)
-
-    # Get the nb of env
-    nenvs = env.num_envs
-
-    # Calculate the batch_size
-    nbatch = nenvs * nsteps
-    nbatch_train = nbatch // nminibatches
-
-    # Get state_space and action_space
-    ob_space = env.observation_space
-    ac_space = env.action_space
-
-    # Instantiate the model object (that creates act_model and train_model)
-    if model_fn is None:
-        from baselines.ppo2.model import Model
-        model_fn = Model
-
-    model = model_fn(policy=policy, ob_space=ob_space, ac_space=ac_space, nbatch_act=nenvs, nbatch_train=nbatch_train,
-                    nsteps=nsteps, ent_coef=ent_coef, vf_coef=vf_coef,
-                    max_grad_norm=max_grad_norm)
-
-    model.load(load_path)
-
-    return model
-
 def constfn(val):
     def f(_):
         return val
