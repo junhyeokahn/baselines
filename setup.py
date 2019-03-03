@@ -42,7 +42,10 @@ setup(name='baselines',
           'opencv-python',
           'pyzmq',
           'mpi4py',
-          'pandas'
+          'pandas',
+          'paramiko',
+          'pyyaml',
+          'ruamel.yaml'
       ],
       extras_require=extras,
       description='OpenAI baselines: high quality implementations of reinforcement learning algorithms',
