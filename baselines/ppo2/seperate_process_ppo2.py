@@ -26,10 +26,9 @@ def constfn(val):
 def learn(env, nenvs, network, password, total_timesteps=1e6, seed=None,
         nsteps=2048, ent_coef=0.0, lr=3e-4, vf_coef=0.5,  max_grad_norm=0.5,
         gamma=0.99, lam=0.95, log_interval=10, nminibatches=4, noptepochs=4,
-        cliprange=0.2, save_interval=0, save_path=None, load_path=None, **network_kwargs):
+        cliprange=0.2, save_interval=0, load_path=None, **network_kwargs):
 
     set_global_seeds(seed)
-    save_dir = save_path
 
     if isinstance(lr, float): lr = constfn(lr)
     else: assert callable(lr)

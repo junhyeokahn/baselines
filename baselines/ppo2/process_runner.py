@@ -26,8 +26,8 @@ class ProcessRunner(object):
     def __init__(self, env, model, n_env, n_steps, gamma, lam, password,
             verbose=0, **network_kwargs):
         self.env = env
-        # assume env spec looks like DummyNAME-v0
-        self.env_name = env.unwrapped.spec.id.split('-')[0][5:]
+        # assume env spec looks like DummyNAMEEnv-v0
+        self.env_name = (env.unwrapped.spec.id.split('-')[0][5:])[:-3]
         self.model = model
         self.ob_space = env.observation_space
         self.ac_space = env.action_space
@@ -183,7 +183,8 @@ class ProcessRunner(object):
             self.create_zmq_sockets(env_idx)
             self.run_experiment(env_idx, policy_param, valfn_param)
 
-        for step_idx in tqdm(range(self.n_steps), ncols=80, desc="[Trajectory Roll Out]"):
+        # for step_idx in tqdm(range(self.n_steps), ncols=80, desc="[Trajectory Roll Out]"):
+        for step_idx in range(self.n_steps):
             for env_idx in range(self.n_env):
                 pb_data = Data()
                 while(True):
