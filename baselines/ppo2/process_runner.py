@@ -183,8 +183,8 @@ class ProcessRunner(object):
             self.create_zmq_sockets(env_idx)
             self.run_experiment(env_idx, policy_param, valfn_param)
 
-        for step_idx in tqdm(range(self.n_steps), ncols=80, desc="[Trajectory Roll Out]"):
-        # for step_idx in range(self.n_steps):
+        # for step_idx in tqdm(range(self.n_steps), ncols=80, desc="[Trajectory Roll Out]"):
+        for step_idx in range(self.n_steps):
             for env_idx in range(self.n_env):
                 pb_data = Data()
                 while(True):
