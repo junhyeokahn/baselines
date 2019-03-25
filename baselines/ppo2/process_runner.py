@@ -48,6 +48,7 @@ class ProcessRunner(object):
         else:
             print("Wrong activation function")
         self.mpi_rank = MPI.COMM_WORLD.Get_rank()
+        self.mpi_size = MPI.COMM_WORLD.Get_size()
 
         self.parameter_setting()
         self.process_manager_list = { str(env_id): ProcessManager(self.ip_control_pc,
@@ -183,10 +184,10 @@ class ProcessRunner(object):
             self.create_zmq_sockets(env_idx)
             self.run_experiment(env_idx, policy_param, valfn_param)
 
-        for step_idx in tqdm(range(self.n_steps), ncols=80, desc="[Trajectory Roll Out @ " + str(self.mpi_rank) + "]", position=self.mpi_rank):
-        # for step_idx in range(self.n_steps):
-            # if self.mpi_rank == 0:
-                # print("[Trajectory Roll Out] {}/{}".format(step_idx, self.n_steps), end="\r", flush=True)
+        # for step_idx in tqdm(range(self.n_steps), ncols=80, desc="[Trajectory Roll Out @ " + str(self.mpi_rank) + "]", position=self.mpi_rank):
+        for step_idx in range(self.n_steps):
+            if self.mpi_rank == 0:
+                print("[Trajectory Roll Out] {}/{}".format(step_idx, self.n_steps), end="\r", flush=True)
             for env_idx in range(self.n_env):
                 pb_data = Data()
                 while(True):
